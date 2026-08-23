@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0b1220">
+
 <title>فهد | مساعدك الذكي</title>
 
 <style>
@@ -14,7 +15,7 @@
 
 body{
   margin:0;
-  font-family:Arial,"Tahoma",sans-serif;
+  font-family:Arial,Tahoma,sans-serif;
   background:#f4f7fb;
   color:#172033;
 }
@@ -28,10 +29,11 @@ body{
   flex-direction:column;
 }
 
-/* Header */
+/* الهيدر */
+
 .header{
   background:linear-gradient(135deg,#0b1220,#17233b);
-  color:#fff;
+  color:white;
   padding:22px 20px 25px;
   border-radius:0 0 28px 28px;
 }
@@ -87,7 +89,8 @@ body{
   background:#22c55e;
 }
 
-/* Main */
+/* المحتوى */
+
 .main{
   flex:1;
   padding:22px 18px 105px;
@@ -119,6 +122,8 @@ body{
   margin:22px 4px 12px;
 }
 
+/* الأزرار السريعة */
+
 .quick-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -126,7 +131,7 @@ body{
 }
 
 .quick{
-  background:#fff;
+  background:white;
   border:1px solid #e7ebf0;
   border-radius:18px;
   padding:18px 15px;
@@ -156,10 +161,11 @@ body{
   font-size:12px;
 }
 
-/* Chat */
+/* المحادثة */
+
 .chat-card{
   margin-top:20px;
-  background:#fff;
+  background:white;
   border:1px solid #e7ebf0;
   border-radius:22px;
   padding:18px;
@@ -179,387 +185,4 @@ body{
   border-radius:12px;
   background:#dcfce7;
   display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-}
-
-.chat-title strong{
-  font-size:14px;
-}
-
-.chat-title small{
-  display:block;
-  color:#22a45a;
-  margin-top:3px;
-}
-
-.message{
-  background:#f1f5f9;
-  border-radius:16px 16px 5px 16px;
-  padding:13px;
-  font-size:14px;
-  line-height:1.7;
-}
-
-.input-area{
-  display:flex;
-  gap:8px;
-  margin-top:14px;
-}
-
-.input-area input{
-  flex:1;
-  border:1px solid #dce2e9;
-  border-radius:15px;
-  padding:13px;
-  outline:none;
-  font-size:14px;
-  min-width:0;
-}
-
-.input-area input:focus{
-  border-color:#22c55e;
-}
-
-.send{
-  width:48px;
-  border:0;
-  border-radius:15px;
-  background:#16a34a;
-  color:#fff;
-  font-size:20px;
-  cursor:pointer;
-}
-
-/* Bottom navigation */
-.nav{
-  position:fixed;
-  bottom:0;
-  left:50%;
-  transform:translateX(-50%);
-  width:min(520px,100%);
-  height:78px;
-  background:rgba(255,255,255,.96);
-  backdrop-filter:blur(12px);
-  border-top:1px solid #e8edf2;
-  display:flex;
-  justify-content:space-around;
-  align-items:center;
-  z-index:10;
-}
-
-.nav-item{
-  border:0;
-  background:none;
-  color:#8993a3;
-  font-size:11px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:5px;
-  cursor:pointer;
-}
-
-.nav-item span{
-  font-size:22px;
-}
-
-.nav-item.active{
-  color:#16a34a;
-  font-weight:bold;
-}
-
-/* Modal */
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.45);
-  z-index:20;
-  align-items:flex-end;
-  justify-content:center;
-}
-
-.modal-box{
-  width:min(520px,100%);
-  background:#fff;
-  border-radius:28px 28px 0 0;
-  padding:25px 20px 30px;
-}
-
-.modal-box h3{
-  margin-top:0;
-}
-
-.close{
-  width:100%;
-  padding:14px;
-  border:0;
-  border-radius:14px;
-  background:#0b1220;
-  color:#fff;
-  font-size:15px;
-  margin-top:15px;
-}
-
-@media(min-width:600px){
-  body{
-    padding:20px 0;
-  }
-
-  .app{
-    border-radius:28px;
-    overflow:hidden;
-    box-shadow:0 15px 50px rgba(15,23,42,.12);
-  }
-
-  .nav{
-    bottom:20px;
-    border-radius:20px;
-    border:1px solid #e8edf2;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<div class="app">
-
-  <header class="header">
-
-    <div class="header-top">
-
-      <div class="brand">
-        <div class="logo">ف</div>
-
-        <div>
-          <h1>فهد</h1>
-          <p>مساعدك الذكي</p>
-        </div>
-      </div>
-
-      <div class="status">
-        <span class="dot"></span>
-        متصل
-      </div>
-
-    </div>
-
-  </header>
-
-
-  <main class="main">
-
-    <section class="welcome">
-      <h2>أهلًا بك 👋</h2>
-
-      <p>
-        أنا فهد، مساعدك الذكي.
-        اكتب لي ما تريد وسأساعدك خطوة بخطوة.
-      </p>
-    </section>
-
-
-    <div class="section-title">
-      ماذا تريد من فهد؟
-    </div>
-
-
-    <section class="quick-grid">
-
-      <button class="quick" onclick="quickAction('اسأل فهد')">
-        <div class="quick-icon">💬</div>
-        <strong>اسأل فهد</strong>
-        <span>احصل على إجابة سريعة</span>
-      </button>
-
-      <button class="quick" onclick="quickAction('خطط لي')">
-        <div class="quick-icon">📋</div>
-        <strong>خطط لي</strong>
-        <span>أنشئ خطة تناسبك</span>
-      </button>
-
-      <button class="quick" onclick="quickAction('ابحث لي')">
-        <div class="quick-icon">🔎</div>
-        <strong>ابحث لي</strong>
-        <span>ساعدني في الوصول للمعلومة</span>
-      </button>
-
-      <button class="quick" onclick="quickAction('ساعدني')">
-        <div class="quick-icon">⚡</div>
-        <strong>ساعدني</strong>
-        <span>ابدأ مهمة جديدة</span>
-      </button>
-
-    </section>
-
-
-    <section class="chat-card">
-
-      <div class="chat-title">
-
-        <div class="mini-logo">ف</div>
-
-        <div>
-          <strong>تحدث مع فهد</strong>
-          <small>جاهز لمساعدتك</small>
-        </div>
-
-      </div>
-
-      <div class="message" id="message">
-        مرحبًا! 👋 كيف يمكنني مساعدتك اليوم؟
-      </div>
-
-      <div class="input-area">
-
-        <input
-          id="userInput"
-          type="text"
-          placeholder="اكتب رسالتك لفهد..."
-          onkeydown="handleEnter(event)"
-        >
-
-        <button class="send" onclick="sendMessage()">➤</button>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <nav class="nav">
-
-    <button class="nav-item active" onclick="home()">
-      <span>⌂</span>
-      الرئيسية
-    </button>
-
-    <button class="nav-item" onclick="showInfo('المحادثات')">
-      <span>💬</span>
-      المحادثات
-    </button>
-
-    <button class="nav-item" onclick="showInfo('المهام')">
-      <span>✓</span>
-      المهام
-    </button>
-
-    <button class="nav-item" onclick="showInfo('الإعدادات')">
-      <span>⚙</span>
-      الإعدادات
-    </button>
-
-  </nav>
-
-</div>
-
-
-<div class="modal" id="modal">
-
-  <div class="modal-box">
-
-    <h3 id="modalTitle">فهد</h3>
-
-    <p id="modalText">
-      هذه الوظيفة سيتم تفعيلها في المرحلة القادمة.
-    </p>
-
-    <button class="close" onclick="closeModal()">
-      حسنًا
-    </button>
-
-  </div>
-
-</div>
-
-
-<script>
-
-function sendMessage(){
-
-  const input = document.getElementById("userInput");
-  const message = document.getElementById("message");
-
-  const text = input.value.trim();
-
-  if(!text){
-    return;
-  }
-
-  message.innerHTML =
-    "📩 وصلت رسالتك إلى فهد:<br><br><strong>" +
-    escapeHtml(text) +
-    "</strong><br><br>" +
-    "أنا جاهز، وسيتم ربط الذكاء الاصطناعي الحقيقي في المرحلة القادمة.";
-
-  input.value = "";
-}
-
-
-function handleEnter(event){
-
-  if(event.key === "Enter"){
-    sendMessage();
-  }
-
-}
-
-
-function quickAction(title){
-
-  const input = document.getElementById("userInput");
-
-  input.value = title;
-
-  input.focus();
-
-}
-
-
-function showInfo(title){
-
-  document.getElementById("modalTitle").innerText = title;
-
-  document.getElementById("modalText").innerText =
-    "قسم " + title + " سيكون متاحًا في التطوير القادم من فهد.";
-
-  document.getElementById("modal").style.display = "flex";
-
-}
-
-
-function closeModal(){
-
-  document.getElementById("modal").style.display = "none";
-
-}
-
-
-function home(){
-
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
-
-}
-
-
-function escapeHtml(text){
-
-  const div = document.createElement("div");
-
-  div.textContent = text;
-
-  return div.innerHTML;
-
-}
-
-</script>
-
-</body>
-</html>
+  align-items:center
