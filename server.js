@@ -8,139 +8,337 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// ===============================
+// OpenAI
+// ===============================
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// الاتصال بقاعدة البيانات
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+// ===============================
+// PostgreSQL
+// ===============================
 
-// إنشاء جدول الذاكرة تلقائيًا
-async function initDatabase() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS memories (
-      id SERIAL PRIMARY KEY,
-      content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+let pool = null;
 
-  console.log("Fahed memory database is ready");
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000
+  });
+
+  console.log("PostgreSQL: DATABASE_URL detected");
+} else {
+  console.log("PostgreSQL: DATABASE_URL not found");
 }
 
-// شخصية فهد
-const FAEHAD_INSTRUCTIONS = `
-أنت فهد، مساعد ذكي شخصي.
-
-مهمتك:
-- مساعدة المستخدم بطريقة واضحة ومباشرة.
-- التحدث باللغة العربية بشكل طبيعي، إلا إذا طلب المستخدم لغة أخرى.
-- فهم سؤال المستخدم والرد عليه بدقة.
-- إذا كانت المعلومة غير مؤكدة، لا تخترعها.
-- لا تدّعي امتلاك قدرات أو أدوات غير متاحة لك.
-- كن عمليًا وودودًا.
-- عندما يحتاج المستخدم إلى شرح، اشرح له خطوة بخطوة.
-
-الذاكرة:
-- لديك ذاكرة دائمة للمعلومات التي يطلب المستخدم منك حفظها.
-- لا تفترض أن كل معلومة يقولها المستخدم يجب حفظها.
-- عندما يقول المستخدم بوضوح "تذكر" أو "احفظ" أو "سجل"، يمكن حفظ المعلومة.
-- عندما يقول المستخدم "انسَ" أو "احذف من ذاكرتك"، يجب التعامل مع ذلك كطلب لحذف المعلومة.
-`;
+// ===============================
+// الصفحة الرئيسية
+// ===============================
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// ===============================
+// Health Check
+// ===============================
+
+app.get("/health", async (req, res) => {
+  let database = "not configured";
+
+  if (pool) {
+    try {
+      await pool.query("SELECT 1");
+      database = "connected";
+    } catch (error) {
+      database = "error";
+    }
+  }
+
+  res.json({
+    status: "ok",
+    fahed: "online",
+    database
+  });
+});
+
+// ===============================
+// إنشاء جدول الذاكرة
+// ===============================
+
+async function initializeDatabase() {
+  if (!pool) {
+    console.log("Database initialization skipped");
+    return;
+  }
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS memories (
+        id SERIAL PRIMARY KEY,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log("Database initialized");
+  } catch (error) {
+    console.error("Database initialization error:", error);
+  }
+}
+
+// ===============================
+// جلب الذاكرة
+// ===============================
+
+async function getMemories() {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT id, content, created_at
+      FROM memories
+      ORDER BY created_at DESC
+      LIMIT 50
+    `);
+
+    return result.rows;
+  } catch (error) {
+    console.error("Get memories error:", error);
+    return [];
+  }
+}
+
+// ===============================
+// حفظ ذاكرة
+// ===============================
+
+async function saveMemory(content) {
+  if (!pool || !content) {
+    return;
+  }
+
+  const cleanContent = content.trim();
+
+  if (!cleanContent) {
+    return;
+  }
+
+  try {
+    // منع التكرار
+    const existing = await pool.query(
+      `
+      SELECT id
+      FROM memories
+      WHERE LOWER(content) = LOWER($1)
+      LIMIT 1
+      `,
+      [cleanContent]
+    );
+
+    if (existing.rows.length > 0) {
+      return;
+    }
+
+    await pool.query(
+      `
+      INSERT INTO memories (content)
+      VALUES ($1)
+      `,
+      [cleanContent]
+    );
+
+    console.log("Memory saved");
+  } catch (error) {
+    console.error("Save memory error:", error);
+  }
+}
+
+// ===============================
+// حذف جميع الذكريات
+// ===============================
+
+async function deleteAllMemories() {
+  if (!pool) {
+    return;
+  }
+
+  try {
+    await pool.query("DELETE FROM memories");
+    console.log("All memories deleted");
+  } catch (error) {
+    console.error("Delete memories error:", error);
+  }
+}
+
+// ===============================
+// استخراج الذاكرة من رسالة المستخدم
+// ===============================
+
+function extractMemory(text) {
+  const lower = text.toLowerCase();
+
+  const memoryPhrases = [
+    "تذكر أن",
+    "تذكر ان",
+    "احفظ أن",
+    "احفظ ان",
+    "تذكر بأن",
+    "تذكر بان",
+    "لا تنسى أن",
+    "لا تنسى ان"
+  ];
+
+  for (const phrase of memoryPhrases) {
+    const index = lower.indexOf(phrase);
+
+    if (index !== -1) {
+      const memory = text
+        .substring(index + phrase.length)
+        .trim();
+
+      if (memory.length > 2) {
+        return memory;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ===============================
+// اكتشاف طلب نسيان الذاكرة
+// ===============================
+
+function isForgetRequest(text) {
+  const phrases = [
+    "انسَ كل شيء",
+    "انس كل شيء",
+    "انسى كل شيء",
+    "انسَ كل الذاكرة",
+    "انس كل الذاكرة",
+    "احذف الذاكرة",
+    "امسح الذاكرة",
+    "احذف كل الذكريات",
+    "امسح كل الذكريات"
+  ];
+
+  const lower = text.toLowerCase();
+
+  return phrases.some(phrase => lower.includes(phrase));
+}
+
+// ===============================
+// API المحادثة
+// ===============================
+
 app.post("/api/chat", async (req, res) => {
   try {
     const text = req.body.message;
 
-    if (!text) {
+    if (!text || !text.trim()) {
       return res.status(400).json({
         error: "الرسالة فارغة"
       });
     }
 
-    // استرجاع الذاكرة
-    const memoriesResult = await pool.query(`
-      SELECT content
-      FROM memories
-      ORDER BY created_at DESC
-      LIMIT 20
-    `);
+    // ===========================
+    // طلب حذف الذاكرة
+    // ===========================
 
-    const memories = memoriesResult.rows
-      .map(row => `- ${row.content}`)
-      .join("\n");
+    if (isForgetRequest(text)) {
+      await deleteAllMemories();
 
-    const input = `
-ذكريات فهد المحفوظة عن المستخدم:
-${memories || "لا توجد ذكريات محفوظة حتى الآن."}
+      return res.json({
+        reply: "تم حذف الذاكرة المحفوظة لدى فهد."
+      });
+    }
 
-رسالة المستخدم:
-${text}
+    // ===========================
+    // حفظ ذاكرة إذا طلب المستخدم
+    // ===========================
+
+    const memory = extractMemory(text);
+
+    if (memory) {
+      await saveMemory(memory);
+    }
+
+    // ===========================
+    // قراءة الذاكرة
+    // ===========================
+
+    const memories = await getMemories();
+
+    let memoryText = "";
+
+    if (memories.length > 0) {
+      memoryText = `
+هذه معلومات محفوظة من المستخدم ويمكن استخدامها عندما تكون مرتبطة بالسؤال:
+
+${memories
+  .map((item, index) => `${index + 1}. ${item.content}`)
+  .join("\n")}
 `;
+    }
+
+    // ===========================
+    // تعليمات فهد
+    // ===========================
+
+    const instructions = `
+أنت "فهد"، مساعد ذكي شخصي.
+
+اسم المستخدم هو عادل إذا كانت هذه المعلومة موجودة في الذاكرة.
+
+تحدث باللغة العربية عندما يتحدث المستخدم بالعربية.
+
+كن واضحًا ومباشرًا وودودًا.
+
+لا تدّعي أنك تستطيع تنفيذ شيء لا تستطيع تنفيذه.
+
+إذا كانت هناك معلومات محفوظة عن المستخدم، استخدمها فقط عندما تكون مرتبطة بالسؤال.
+
+${memoryText}
+`;
+
+    // ===========================
+    // OpenAI Responses API
+    // ===========================
 
     const response = await client.responses.create({
       model: "gpt-5-mini",
-      instructions: FAEHAD_INSTRUCTIONS,
-      input: input
+      instructions,
+      input: text
     });
 
-    const reply = response.output_text;
-
-    // حفظ المعلومة عندما يطلب المستخدم ذلك صراحةً
-    const saveWords = [
-      "تذكر",
-      "تذكّر",
-      "احفظ",
-      "سجل",
-      "سجّل",
-      "خلي ببالك",
-      "خليه بذاكرتك"
-    ];
-
-    const wantsSave = saveWords.some(word =>
-      text.toLowerCase().includes(word)
-    );
-
-    if (wantsSave) {
-      await pool.query(
-        "INSERT INTO memories (content) VALUES ($1)",
-        [text]
-      );
-
-      console.log("Memory saved:", text);
-    }
-
     res.json({
-      reply: reply
+      reply: response.output_text || "لم أتمكن من إنشاء إجابة."
     });
 
   } catch (error) {
     console.error("OpenAI/Database Error:", error);
 
     res.status(500).json({
-      error: error.message || "حدث خطأ أثناء الاتصال بفهد"
+      error: error.message || "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
     });
   }
 });
 
+// ===============================
 // تشغيل السيرفر
+// ===============================
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, "0.0.0.0", async () => {
   console.log("Fahed is running on port " + PORT);
 
-  try {
-    await initDatabase();
-  } catch (error) {
-    console.error("Database initialization error:", error);
-  }
+  await initializeDatabase();
 });
