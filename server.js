@@ -131,7 +131,6 @@ async function saveMemory(content) {
   }
 
   try {
-    // منع التكرار
     const existing = await pool.query(
       `
       SELECT id
@@ -154,7 +153,7 @@ async function saveMemory(content) {
       [cleanContent]
     );
 
-    console.log("Memory saved");
+    console.log("Memory saved:", cleanContent);
   } catch (error) {
     console.error("Save memory error:", error);
   }
@@ -178,6 +177,61 @@ async function deleteAllMemories() {
 }
 
 // ===============================
+// حذف ذاكرة محددة
+// ===============================
+
+async function deleteSpecificMemory(text) {
+  if (!pool || !text) {
+    return false;
+  }
+
+  const lower = text.toLowerCase();
+
+  const phrases = [
+    "انسَ أن",
+    "انس ان",
+    "انسَ ان",
+    "انسى أن",
+    "انسى ان",
+    "احذف أن",
+    "احذف ان",
+    "احذف ذاكرة",
+    "امسح ذاكرة"
+  ];
+
+  for (const phrase of phrases) {
+    const index = lower.indexOf(phrase.toLowerCase());
+
+    if (index !== -1) {
+      const memoryText = text
+        .substring(index + phrase.length)
+        .trim();
+
+      if (!memoryText) {
+        return false;
+      }
+
+      try {
+        const result = await pool.query(
+          `
+          DELETE FROM memories
+          WHERE LOWER(content) = LOWER($1)
+          `,
+          [memoryText]
+        );
+
+        return result.rowCount > 0;
+      } catch (error) {
+        console.error("Delete specific memory error:", error);
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
+
+// ===============================
 // استخراج الذاكرة من رسالة المستخدم
 // ===============================
 
@@ -196,7 +250,7 @@ function extractMemory(text) {
   ];
 
   for (const phrase of memoryPhrases) {
-    const index = lower.indexOf(phrase);
+    const index = lower.indexOf(phrase.toLowerCase());
 
     if (index !== -1) {
       const memory = text
@@ -213,25 +267,52 @@ function extractMemory(text) {
 }
 
 // ===============================
-// اكتشاف طلب نسيان الذاكرة
+// طلب عرض الذاكرة
 // ===============================
 
-function isForgetRequest(text) {
+function isMemoryListRequest(text) {
+  const phrases = [
+    "ماذا تتذكر عني",
+    "ماذا تتذكر",
+    "ما الذي تتذكره عني",
+    "ما الذي تتذكره",
+    "اعرض ذاكرتك",
+    "اعرض الذاكرة",
+    "عرض الذاكرة",
+    "ذكرياتي",
+    "ما هي ذكرياتي"
+  ];
+
+  const lower = text.toLowerCase();
+
+  return phrases.some(phrase =>
+    lower.includes(phrase.toLowerCase())
+  );
+}
+
+// ===============================
+// طلب حذف جميع الذاكرة
+// ===============================
+
+function isForgetAllRequest(text) {
   const phrases = [
     "انسَ كل شيء",
     "انس كل شيء",
     "انسى كل شيء",
     "انسَ كل الذاكرة",
     "انس كل الذاكرة",
-    "احذف الذاكرة",
-    "امسح الذاكرة",
+    "انسى كل الذاكرة",
+    "احذف الذاكرة كلها",
+    "امسح الذاكرة كلها",
     "احذف كل الذكريات",
     "امسح كل الذكريات"
   ];
 
   const lower = text.toLowerCase();
 
-  return phrases.some(phrase => lower.includes(phrase));
+  return phrases.some(phrase =>
+    lower.includes(phrase.toLowerCase())
+  );
 }
 
 // ===============================
@@ -248,15 +329,52 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    const cleanText = text.trim();
+
     // ===========================
-    // طلب حذف الذاكرة
+    // عرض الذاكرة
     // ===========================
 
-    if (isForgetRequest(text)) {
+    if (isMemoryListRequest(cleanText)) {
+      const memories = await getMemories();
+
+      if (memories.length === 0) {
+        return res.json({
+          reply: "لا توجد لدي ذكريات محفوظة عنك حاليًا."
+        });
+      }
+
+      const memoryList = memories
+        .map((item, index) => `${index + 1}. ${item.content}`)
+        .join("\n");
+
+      return res.json({
+        reply:
+          `هذه المعلومات التي أتذكرها عنك:\n\n${memoryList}`
+      });
+    }
+
+    // ===========================
+    // حذف جميع الذاكرة
+    // ===========================
+
+    if (isForgetAllRequest(cleanText)) {
       await deleteAllMemories();
 
       return res.json({
-        reply: "تم حذف الذاكرة المحفوظة لدى فهد."
+        reply: "تم حذف جميع الذكريات المحفوظة لدى فهد."
+      });
+    }
+
+    // ===========================
+    // حذف ذاكرة محددة
+    // ===========================
+
+    const deleted = await deleteSpecificMemory(cleanText);
+
+    if (deleted) {
+      return res.json({
+        reply: "تم حذف هذه المعلومة من ذاكرتي."
       });
     }
 
@@ -264,7 +382,7 @@ app.post("/api/chat", async (req, res) => {
     // حفظ ذاكرة إذا طلب المستخدم
     // ===========================
 
-    const memory = extractMemory(text);
+    const memory = extractMemory(cleanText);
 
     if (memory) {
       await saveMemory(memory);
@@ -305,6 +423,8 @@ ${memories
 
 إذا كانت هناك معلومات محفوظة عن المستخدم، استخدمها فقط عندما تكون مرتبطة بالسؤال.
 
+لا تخبر المستخدم أنك تتذكر معلومة إذا لم تكن موجودة فعلًا في الذاكرة.
+
 ${memoryText}
 `;
 
@@ -315,7 +435,7 @@ ${memoryText}
     const response = await client.responses.create({
       model: "gpt-5-mini",
       instructions,
-      input: text
+      input: cleanText
     });
 
     res.json({
@@ -326,7 +446,9 @@ ${memoryText}
     console.error("OpenAI/Database Error:", error);
 
     res.status(500).json({
-      error: error.message || "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
+      error:
+        error.message ||
+        "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
     });
   }
 });
