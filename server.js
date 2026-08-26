@@ -96,9 +96,7 @@ async function initializeDatabase() {
 // ===============================
 
 async function getMemories() {
-  if (!pool) {
-    return [];
-  }
+  if (!pool) return [];
 
   try {
     const result = await pool.query(`
@@ -120,15 +118,11 @@ async function getMemories() {
 // ===============================
 
 async function saveMemory(content) {
-  if (!pool || !content) {
-    return;
-  }
+  if (!pool || !content) return;
 
   const cleanContent = content.trim();
 
-  if (!cleanContent) {
-    return;
-  }
+  if (!cleanContent) return;
 
   try {
     const existing = await pool.query(
@@ -141,9 +135,7 @@ async function saveMemory(content) {
       [cleanContent]
     );
 
-    if (existing.rows.length > 0) {
-      return;
-    }
+    if (existing.rows.length > 0) return;
 
     await pool.query(
       `
@@ -164,9 +156,7 @@ async function saveMemory(content) {
 // ===============================
 
 async function deleteAllMemories() {
-  if (!pool) {
-    return;
-  }
+  if (!pool) return;
 
   try {
     await pool.query("DELETE FROM memories");
@@ -177,68 +167,60 @@ async function deleteAllMemories() {
 }
 
 // ===============================
-// حذف ذاكرة محددة
+// حذف ذاكرة تحتوي على نص
 // ===============================
 
-async function deleteSpecificMemory(text) {
-  if (!pool || !text) {
+async function deleteMemoryContaining(text) {
+  if (!pool || !text) return false;
+
+  try {
+    const result = await pool.query(
+      `
+      DELETE FROM memories
+      WHERE LOWER(content) LIKE LOWER($1)
+      `,
+      [`%${text}%`]
+    );
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error("Delete memory error:", error);
     return false;
   }
-
-  const lower = text.toLowerCase();
-
-  const phrases = [
-    "انسَ أن",
-    "انس ان",
-    "انسَ ان",
-    "انسى أن",
-    "انسى ان",
-    "احذف أن",
-    "احذف ان",
-    "احذف ذاكرة",
-    "امسح ذاكرة"
-  ];
-
-  for (const phrase of phrases) {
-    const index = lower.indexOf(phrase.toLowerCase());
-
-    if (index !== -1) {
-      const memoryText = text
-        .substring(index + phrase.length)
-        .trim();
-
-      if (!memoryText) {
-        return false;
-      }
-
-      try {
-        const result = await pool.query(
-          `
-          DELETE FROM memories
-          WHERE LOWER(content) = LOWER($1)
-          `,
-          [memoryText]
-        );
-
-        return result.rowCount > 0;
-      } catch (error) {
-        console.error("Delete specific memory error:", error);
-        return false;
-      }
-    }
-  }
-
-  return false;
 }
 
 // ===============================
-// استخراج الذاكرة من رسالة المستخدم
+// تحديث ذاكرة
+// ===============================
+
+async function updateMemory(oldText, newText) {
+  if (!pool || !oldText || !newText) return false;
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE memories
+      SET content = $1
+      WHERE LOWER(content) LIKE LOWER($2)
+      `,
+      [newText.trim(), `%${oldText.trim()}%`]
+    );
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error("Update memory error:", error);
+    return false;
+  }
+}
+
+// ===============================
+// استخراج الذاكرة
 // ===============================
 
 function extractMemory(text) {
   const lower = text.toLowerCase();
 
-  const memoryPhrases = [
+  const phrases = [
     "تذكر أن",
     "تذكر ان",
     "احفظ أن",
@@ -249,7 +231,7 @@ function extractMemory(text) {
     "لا تنسى ان"
   ];
 
-  for (const phrase of memoryPhrases) {
+  for (const phrase of phrases) {
     const index = lower.indexOf(phrase.toLowerCase());
 
     if (index !== -1) {
@@ -261,6 +243,42 @@ function extractMemory(text) {
         return memory;
       }
     }
+  }
+
+  return null;
+}
+
+// ===============================
+// اكتشاف المعلومات المباشرة
+// ===============================
+
+function extractSmartMemory(text) {
+  const lower = text.toLowerCase().trim();
+
+  // الاسم
+  const nameMatch = lower.match(
+    /(?:اسمي|أنا اسمي|انا اسمي)\s+(.+)/i
+  );
+
+  if (nameMatch) {
+    return {
+      type: "name",
+      value: nameMatch[1].trim(),
+      content: `اسمي ${nameMatch[1].trim()}`
+    };
+  }
+
+  // اللون المفضل
+  const colorMatch = lower.match(
+    /(?:لوني المفضل|اللون المفضل لدي|اللون المفضل عندي)\s+(?:هو\s+)?(.+)/i
+  );
+
+  if (colorMatch) {
+    return {
+      type: "favorite_color",
+      value: colorMatch[1].trim(),
+      content: `لوني المفضل هو ${colorMatch[1].trim()}`
+    };
   }
 
   return null;
@@ -291,7 +309,7 @@ function isMemoryListRequest(text) {
 }
 
 // ===============================
-// طلب حذف جميع الذاكرة
+// طلب حذف كل الذاكرة
 // ===============================
 
 function isForgetAllRequest(text) {
@@ -313,6 +331,78 @@ function isForgetAllRequest(text) {
   return phrases.some(phrase =>
     lower.includes(phrase.toLowerCase())
   );
+}
+
+// ===============================
+// طلب حذف معلومة محددة
+// ===============================
+
+function extractForgetRequest(text) {
+  const patterns = [
+    /انسَ\s+(?:أن\s+)?(.+)/i,
+    /انس\s+(?:أن\s+)?(.+)/i,
+    /انسى\s+(?:أن\s+)?(.+)/i,
+    /احذف\s+(?:أن\s+)?(.+)/i,
+    /امسح\s+(?:أن\s+)?(.+)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return null;
+}
+
+// ===============================
+// طلب تغيير معلومة
+// ===============================
+
+function extractUpdateRequest(text) {
+  const patterns = [
+    {
+      regex: /غيّر\s+لوني\s+المفضل\s+(?:إلى|الى)\s+(.+)/i,
+      oldText: "لوني المفضل"
+    },
+    {
+      regex: /غير\s+لوني\s+المفضل\s+(?:إلى|الى)\s+(.+)/i,
+      oldText: "لوني المفضل"
+    },
+    {
+      regex: /غيّر\s+اسمي\s+(?:إلى|الى)\s+(.+)/i,
+      oldText: "اسمي"
+    },
+    {
+      regex: /غير\s+اسمي\s+(?:إلى|الى)\s+(.+)/i,
+      oldText: "اسمي"
+    }
+  ];
+
+  for (const item of patterns) {
+    const match = text.match(item.regex);
+
+    if (match) {
+      let newValue = match[1].trim();
+
+      if (item.oldText === "لوني المفضل") {
+        newValue = `لوني المفضل هو ${newValue}`;
+      }
+
+      if (item.oldText === "اسمي") {
+        newValue = `اسمي ${newValue}`;
+      }
+
+      return {
+        oldText: item.oldText,
+        newText: newValue
+      };
+    }
+  }
+
+  return null;
 }
 
 // ===============================
@@ -349,13 +439,12 @@ app.post("/api/chat", async (req, res) => {
         .join("\n");
 
       return res.json({
-        reply:
-          `هذه المعلومات التي أتذكرها عنك:\n\n${memoryList}`
+        reply: `هذه المعلومات التي أتذكرها عنك:\n\n${memoryList}`
       });
     }
 
     // ===========================
-    // حذف جميع الذاكرة
+    // حذف كل الذاكرة
     // ===========================
 
     if (isForgetAllRequest(cleanText)) {
@@ -367,25 +456,100 @@ app.post("/api/chat", async (req, res) => {
     }
 
     // ===========================
-    // حذف ذاكرة محددة
+    // تغيير معلومة
     // ===========================
 
-    const deleted = await deleteSpecificMemory(cleanText);
+    const updateRequest = extractUpdateRequest(cleanText);
 
-    if (deleted) {
+    if (updateRequest) {
+      const updated = await updateMemory(
+        updateRequest.oldText,
+        updateRequest.newText
+      );
+
+      if (updated) {
+        return res.json({
+          reply: "تم تحديث المعلومة في ذاكرتي."
+        });
+      }
+
+      await saveMemory(updateRequest.newText);
+
       return res.json({
-        reply: "تم حذف هذه المعلومة من ذاكرتي."
+        reply: "لم تكن المعلومة القديمة موجودة، لذلك حفظت المعلومة الجديدة."
       });
     }
 
     // ===========================
-    // حفظ ذاكرة إذا طلب المستخدم
+    // حذف معلومة محددة
     // ===========================
 
-    const memory = extractMemory(cleanText);
+    const forgetText = extractForgetRequest(cleanText);
 
-    if (memory) {
-      await saveMemory(memory);
+    if (forgetText) {
+      const deleted = await deleteMemoryContaining(forgetText);
+
+      if (deleted) {
+        return res.json({
+          reply: "تم حذف هذه المعلومة من ذاكرتي."
+        });
+      }
+
+      return res.json({
+        reply: "لم أجد هذه المعلومة في ذاكرتي."
+      });
+    }
+
+    // ===========================
+    // حفظ ذاكرة صريحة
+    // ===========================
+
+    const explicitMemory = extractMemory(cleanText);
+
+    if (explicitMemory) {
+      await saveMemory(explicitMemory);
+    }
+
+    // ===========================
+    // حفظ ذاكرة ذكية
+    // ===========================
+
+    const smartMemory = extractSmartMemory(cleanText);
+
+    if (smartMemory) {
+
+      if (smartMemory.type === "name") {
+        await updateMemory("اسمي", smartMemory.content);
+
+        const existing = await getMemories();
+
+        const alreadyExists = existing.some(item =>
+          item.content.toLowerCase() ===
+          smartMemory.content.toLowerCase()
+        );
+
+        if (!alreadyExists) {
+          await saveMemory(smartMemory.content);
+        }
+      }
+
+      if (smartMemory.type === "favorite_color") {
+        await updateMemory(
+          "لوني المفضل",
+          smartMemory.content
+        );
+
+        const existing = await getMemories();
+
+        const alreadyExists = existing.some(item =>
+          item.content.toLowerCase() ===
+          smartMemory.content.toLowerCase()
+        );
+
+        if (!alreadyExists) {
+          await saveMemory(smartMemory.content);
+        }
+      }
     }
 
     // ===========================
@@ -398,7 +562,7 @@ app.post("/api/chat", async (req, res) => {
 
     if (memories.length > 0) {
       memoryText = `
-هذه معلومات محفوظة من المستخدم ويمكن استخدامها عندما تكون مرتبطة بالسؤال:
+هذه معلومات محفوظة من المستخدم:
 
 ${memories
   .map((item, index) => `${index + 1}. ${item.content}`)
@@ -413,17 +577,15 @@ ${memories
     const instructions = `
 أنت "فهد"، مساعد ذكي شخصي.
 
-اسم المستخدم هو عادل إذا كانت هذه المعلومة موجودة في الذاكرة.
-
 تحدث باللغة العربية عندما يتحدث المستخدم بالعربية.
 
 كن واضحًا ومباشرًا وودودًا.
 
-لا تدّعي أنك تستطيع تنفيذ شيء لا تستطيع تنفيذه.
+استخدم المعلومات المحفوظة عندما تكون مرتبطة بسؤال المستخدم.
 
-إذا كانت هناك معلومات محفوظة عن المستخدم، استخدمها فقط عندما تكون مرتبطة بالسؤال.
+لا تخترع ذكريات غير موجودة.
 
-لا تخبر المستخدم أنك تتذكر معلومة إذا لم تكن موجودة فعلًا في الذاكرة.
+إذا سأل المستخدم عن معلومات محفوظة، استخدم الذاكرة الفعلية فقط.
 
 ${memoryText}
 `;
@@ -439,7 +601,8 @@ ${memoryText}
     });
 
     res.json({
-      reply: response.output_text || "لم أتمكن من إنشاء إجابة."
+      reply: response.output_text ||
+        "لم أتمكن من إنشاء إجابة."
     });
 
   } catch (error) {
