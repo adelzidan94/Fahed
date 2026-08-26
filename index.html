@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b1220">
 
   <title>فهد | مساعدك الذكي</title>
 
   <style>
     * {
       box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -24,15 +22,13 @@
       max-width: 520px;
       min-height: 100vh;
       margin: auto;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
+      background: white;
     }
 
     .header {
       background: linear-gradient(135deg, #0b1220, #17233b);
       color: white;
-      padding: 22px 20px 25px;
+      padding: 22px 20px;
       border-radius: 0 0 28px 28px;
     }
 
@@ -48,23 +44,19 @@
       gap: 12px;
     }
 
-    .logo,
-    .mini-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
-
     .logo {
       width: 48px;
       height: 48px;
       border-radius: 15px;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
+      background: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 25px;
+      font-weight: bold;
     }
 
-    .brand h1 {
+    h1 {
       margin: 0;
       font-size: 24px;
     }
@@ -76,23 +68,21 @@
     }
 
     .status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
       font-size: 12px;
       color: #cbd5e1;
     }
 
     .dot {
+      display: inline-block;
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #22c55e;
+      margin-left: 5px;
     }
 
     .main {
-      flex: 1;
-      padding: 22px 18px 105px;
+      padding: 22px 18px 100px;
     }
 
     .welcome {
@@ -100,7 +90,6 @@
       border: 1px solid #e5eee8;
       border-radius: 22px;
       padding: 20px;
-      margin-bottom: 18px;
     }
 
     .welcome h2 {
@@ -128,28 +117,22 @@
     }
 
     .quick {
-      background: white;
       border: 1px solid #e7ebf0;
+      background: white;
       border-radius: 18px;
       padding: 18px 15px;
       text-align: right;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(15, 23, 42, .04);
       font-family: inherit;
-    }
-
-    .quick:active {
-      transform: scale(.97);
+      cursor: pointer;
     }
 
     .quick-icon {
       font-size: 25px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .quick strong {
       display: block;
-      font-size: 14px;
       margin-bottom: 5px;
     }
 
@@ -160,11 +143,9 @@
 
     .chat-card {
       margin-top: 20px;
-      background: white;
       border: 1px solid #e7ebf0;
       border-radius: 22px;
       padding: 18px;
-      box-shadow: 0 5px 18px rgba(15, 23, 42, .05);
     }
 
     .chat-title {
@@ -179,8 +160,378 @@
       height: 38px;
       border-radius: 12px;
       background: #dcfce7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
       font-size: 20px;
     }
 
-    .chat-title strong {
-      font-size: 14px
+    .chat-title small {
+      display: block;
+      color: #16a34a;
+      margin-top: 3px;
+    }
+
+    .message {
+      background: #f1f5f9;
+      border-radius: 16px;
+      padding: 14px;
+      line-height: 1.7;
+      min-height: 55px;
+      word-break: break-word;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    #userInput {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #dce2e9;
+      border-radius: 15px;
+      padding: 13px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    #userInput:focus {
+      border-color: #22c55e;
+    }
+
+    #sendButton {
+      width: 48px;
+      height: 48px;
+      border: 0;
+      border-radius: 15px;
+      background: #16a34a;
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    #sendButton:disabled {
+      opacity: .6;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, 100%);
+      height: 70px;
+      background: white;
+      border-top: 1px solid #e8edf2;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .nav button {
+      border: 0;
+      background: none;
+      color: #64748b;
+      font-family: inherit;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .nav span {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 3px;
+    }
+
+    .nav .active {
+      color: #16a34a;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header class="header">
+
+    <div class="header-top">
+
+      <div class="brand">
+
+        <div class="logo">ف</div>
+
+        <div>
+          <h1>فهد</h1>
+          <p>مساعدك الذكي</p>
+        </div>
+
+      </div>
+
+      <div class="status">
+        <span class="dot"></span>
+        متصل
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="main">
+
+    <section class="welcome">
+
+      <h2>أهلًا بك 👋</h2>
+
+      <p>
+        أنا فهد، مساعدك الذكي.
+        اكتب لي ما تريد وسأساعدك خطوة بخطوة.
+      </p>
+
+    </section>
+
+
+    <div class="section-title">
+      ماذا تريد من فهد؟
+    </div>
+
+
+    <section class="quick-grid">
+
+      <button class="quick" onclick="setQuestion('اسأل فهد')">
+        <div class="quick-icon">💬</div>
+        <strong>اسأل فهد</strong>
+        <span>احصل على إجابة سريعة</span>
+      </button>
+
+      <button class="quick" onclick="setQuestion('خطط لي')">
+        <div class="quick-icon">📋</div>
+        <strong>خطط لي</strong>
+        <span>أنشئ خطة تناسبك</span>
+      </button>
+
+      <button class="quick" onclick="setQuestion('ابحث لي')">
+        <div class="quick-icon">🔎</div>
+        <strong>ابحث لي</strong>
+        <span>ساعدني في الوصول للمعلومة</span>
+      </button>
+
+      <button class="quick" onclick="setQuestion('ساعدني')">
+        <div class="quick-icon">⚡</div>
+        <strong>ساعدني</strong>
+        <span>ابدأ مهمة جديدة</span>
+      </button>
+
+    </section>
+
+
+    <section class="chat-card">
+
+      <div class="chat-title">
+
+        <div class="mini-logo">ف</div>
+
+        <div>
+          <strong>تحدث مع فهد</strong>
+          <small>جاهز لمساعدتك</small>
+        </div>
+
+      </div>
+
+
+      <div class="message" id="message">
+        مرحبًا! 👋 كيف يمكنني مساعدتك اليوم؟
+      </div>
+
+
+      <div class="input-area">
+
+        <input
+          id="userInput"
+          type="text"
+          placeholder="اكتب رسالتك لفهد..."
+          autocomplete="off"
+        >
+
+        <button
+          id="sendButton"
+          type="button"
+          onclick="sendMessage()"
+        >
+          ➤
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <nav class="nav">
+
+    <button class="active" onclick="goHome()">
+      <span>⌂</span>
+      الرئيسية
+    </button>
+
+    <button onclick="showComingSoon('المحادثات')">
+      <span>💬</span>
+      المحادثات
+    </button>
+
+    <button onclick="showComingSoon('المهام')">
+      <span>✓</span>
+      المهام
+    </button>
+
+    <button onclick="showComingSoon('ذاكرتي')">
+      <span>🧠</span>
+      ذاكرتي
+    </button>
+
+  </nav>
+
+</div>
+
+
+<script>
+
+async function sendMessage() {
+
+  const input = document.getElementById("userInput");
+  const message = document.getElementById("message");
+  const button = document.getElementById("sendButton");
+
+  const text = input.value.trim();
+
+  if (!text) {
+    return;
+  }
+
+  button.disabled = true;
+  input.disabled = true;
+
+  message.textContent = "⏳ فهد يفكر...";
+
+  try {
+
+    const response = await fetch("/api/chat", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        message: text
+      })
+
+    });
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error || "حدث خطأ في الخادم"
+      );
+
+    }
+
+
+    message.innerHTML =
+      "<strong>فهد:</strong><br><br>" +
+      escapeHtml(data.reply || "لم تصل إجابة من فهد.");
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.innerHTML =
+      "❌ حدث خطأ أثناء الاتصال بفهد.<br><br>" +
+      "تأكد أن الخادم يعمل وأن OPENAI_API_KEY موجود في Render.";
+
+  } finally {
+
+    button.disabled = false;
+    input.disabled = false;
+
+    input.value = "";
+    input.focus();
+
+  }
+
+}
+
+
+document
+  .getElementById("userInput")
+  .addEventListener("keydown", function(event) {
+
+    if (event.key === "Enter") {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  });
+
+
+function setQuestion(text) {
+
+  const input = document.getElementById("userInput");
+
+  input.value = text;
+
+  input.focus();
+
+}
+
+
+function escapeHtml(text) {
+
+  const div = document.createElement("div");
+
+  div.textContent = String(text);
+
+  return div.innerHTML;
+
+}
+
+
+function goHome() {
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+
+}
+
+
+function showComingSoon(title) {
+
+  alert(
+    "قسم " + title +
+    " سيتم تفعيله في المرحلة القادمة."
+  );
+
+}
+
+</script>
+
+</body>
+</html>
