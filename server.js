@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const openai = new OpenAI({
+const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
@@ -17,30 +17,28 @@ app.get("/", (req, res) => {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const message = req.body.message;
+    const text = req.body.message;
 
-    if (!message) {
+    if (!text) {
       return res.status(400).json({
         error: "الرسالة فارغة"
       });
     }
 
-    const response = await openai.responses.create({
+    const response = await client.responses.create({
       model: "gpt-5-mini",
-      input: message
+      input: text
     });
 
     res.json({
       reply: response.output_text
     });
 
-  } } catch (error) {
+  } catch (error) {
     console.error("OpenAI Error:", error);
 
     res.status(500).json({
       error: error.message || "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
-    });
-}
     });
   }
 });
@@ -48,5 +46,5 @@ app.post("/api/chat", async (req, res) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Fahed is running");
+  console.log("Fahed is running on port " + PORT);
 });
