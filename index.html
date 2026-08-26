@@ -197,6 +197,7 @@
       font-size: 14px;
       line-height: 1.7;
       min-height: 50px;
+      word-break: break-word;
     }
 
     .input-area {
@@ -294,6 +295,8 @@
 
     .modal-box {
       width: min(520px, 100%);
+      max-height: 85vh;
+      overflow-y: auto;
       background: white;
       border-radius: 28px 28px 0 0;
       padding: 25px 20px 30px;
@@ -301,6 +304,15 @@
 
     .modal-box h3 {
       margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 20px;
+    }
+
+    .modal-description {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 18px;
     }
 
     .close {
@@ -312,6 +324,84 @@
       color: white;
       font-size: 15px;
       margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .memory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .memory-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .memory-content {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .memory-delete {
+      border: 0;
+      background: #fee2e2;
+      color: #dc2626;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .memory-delete:active {
+      transform: scale(.95);
+    }
+
+    .memory-empty {
+      text-align: center;
+      background: #f8fafc;
+      border-radius: 18px;
+      padding: 25px 15px;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .memory-loading {
+      text-align: center;
+      padding: 25px;
+      color: #64748b;
+    }
+
+    .memory-error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      border-radius: 15px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .refresh-memory {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #dce2e9;
+      border-radius: 14px;
+      background: white;
+      color: #172033;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 12px;
     }
 
     @media (min-width: 600px) {
@@ -458,9 +548,9 @@
         المهام
       </button>
 
-      <button class="nav-item" onclick="showInfo('الإعدادات')">
-        <span>⚙</span>
-        الإعدادات
+      <button class="nav-item" onclick="openMemory()">
+        <span>🧠</span>
+        ذاكرتي
       </button>
 
     </nav>
@@ -473,12 +563,41 @@
 
       <h3 id="modalTitle">فهد</h3>
 
-      <p id="modalText">
+      <p id="modalText" class="modal-description">
         هذه الوظيفة سيتم تفعيلها في المرحلة القادمة.
       </p>
 
       <button class="close" onclick="closeModal()">
         حسنًا
+      </button>
+
+    </div>
+
+  </div>
+
+  <div class="modal" id="memoryModal">
+
+    <div class="modal-box">
+
+      <h3>🧠 ذاكرتي</h3>
+
+      <p class="modal-description">
+        هذه هي المعلومات التي حفظها فهد بناءً على طلبك.
+        يمكنك حذف أي معلومة في أي وقت.
+      </p>
+
+      <div id="memoryList" class="memory-list">
+        <div class="memory-loading">
+          ⏳ جارٍ تحميل الذاكرة...
+        </div>
+      </div>
+
+      <button class="refresh-memory" onclick="loadMemories()">
+        🔄 تحديث الذاكرة
+      </button>
+
+      <button class="close" onclick="closeMemory()">
+        إغلاق
       </button>
 
     </div>
@@ -558,6 +677,7 @@
       .getElementById("userInput")
       .addEventListener("keydown", handleEnter);
 
+
     function quickAction(title) {
 
       const input = document.getElementById("userInput");
@@ -566,6 +686,7 @@
       input.focus();
 
     }
+
 
     function showInfo(title) {
 
@@ -579,11 +700,13 @@
 
     }
 
+
     function closeModal() {
 
       document.getElementById("modal").style.display = "none";
 
     }
+
 
     function home() {
 
@@ -593,6 +716,7 @@
       });
 
     }
+
 
     function escapeHtml(text) {
 
@@ -604,7 +728,89 @@
 
     }
 
-  </script>
 
-</body>
-</html>
+    // فتح الذاكرة
+    function openMemory() {
+
+      document.getElementById("memoryModal").style.display = "flex";
+
+      loadMemories();
+
+    }
+
+
+    // إغلاق الذاكرة
+    function closeMemory() {
+
+      document.getElementById("memoryModal").style.display = "none";
+
+    }
+
+
+    // تحميل الذكريات من الخادم
+    async function loadMemories() {
+
+      const memoryList = document.getElementById("memoryList");
+
+      memoryList.innerHTML =
+        '<div class="memory-loading">⏳ جارٍ تحميل الذاكرة...</div>';
+
+      try {
+
+        const response = await fetch("/api/memories");
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "تعذر تحميل الذاكرة");
+        }
+
+        if (!data.memories || data.memories.length === 0) {
+
+          memoryList.innerHTML = `
+            <div class="memory-empty">
+              🧠 لا توجد معلومات محفوظة حتى الآن.
+              <br><br>
+              يمكنك أن تقول لفهد:
+              <br>
+              <strong>تذكر أن اسمي عادل</strong>
+            </div>
+          `;
+
+          return;
+        }
+
+        memoryList.innerHTML = "";
+
+        data.memories.forEach(memory => {
+
+          const item = document.createElement("div");
+
+          item.className = "memory-item";
+
+          item.innerHTML = `
+            <div class="memory-content">
+              ${escapeHtml(memory.content)}
+            </div>
+
+            <button
+              class="memory-delete"
+              onclick="deleteMemory(${memory.id})"
+              aria-label="حذف الذاكرة"
+            >
+              🗑️
+            </button>
+          `;
+
+          memoryList.appendChild(item);
+
+        });
+
+      } catch (error) {
+
+        console.error("Memory Error:", error);
+
+        memoryList.innerHTML = `
+          <div class="memory-error">
+            ❌ تعذر الوصول إلى الذاكرة حاليًا.
+           
