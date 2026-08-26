@@ -34,11 +34,13 @@ app.post("/api/chat", async (req, res) => {
       reply: response.output_text
     });
 
-  } catch (error) {
+  } } catch (error) {
     console.error("OpenAI Error:", error);
 
     res.status(500).json({
-      error: "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
+      error: error.message || "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي"
+    });
+}
     });
   }
 });
