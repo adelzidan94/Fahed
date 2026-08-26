@@ -461,7 +461,53 @@ placeholder="اكتب رسالتك لفهد..."
 onkeydown="handleEnter(event)"
 >
 
-<button class="send" onclick="sendMessage()">➤</button>
+<button class="send" async function sendMessage(){
+
+  const input = document.getElementById("userInput");
+  const message = document.getElementById("message");
+  const text = input.value.trim();
+
+  if(!text){
+    return;
+  }
+
+  message.innerHTML = "⏳ فهد يفكر...";
+
+  input.value = "";
+
+  try {
+
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: text
+      })
+    });
+
+    const data = await response.json();
+
+    if(!response.ok){
+      throw new Error(data.error || "حدث خطأ");
+    }
+
+    message.innerHTML =
+      "<strong>فهد:</strong><br><br>" +
+      escapeHtml(data.reply);
+
+  } catch(error) {
+
+    console.error(error);
+
+    message.innerHTML =
+      "❌ حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.<br><br>" +
+      "حاول مرة أخرى.";
+
+  }
+
+}
 
 </div>
 
